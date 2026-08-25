@@ -1,0 +1,15 @@
+{
+  "name": "Fichas de Ameaça T20",
+  "version": "0.2.1",
+  "manifest_version": 1,
+  "author": "DemonRider",
+  "icon": "./icon.svg?v=0.2.1",
+  "description": "Crie, organize e consulte fichas de ameaça de Tormenta20.",
+  "action": {
+    "title": "Fichas de Ameaça T20",
+    "icon": "./icon.svg?v=0.2.1",
+    "popover": "./index.html?v=0.2.1",
+    "height": 680,
+    "width": 420
+  }
+}

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.local
+coverage/
+.tooling/
+.pnpm-store/
+*.log
+sources/
+tmp/
+AGENTS.md
