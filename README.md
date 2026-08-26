@@ -19,6 +19,13 @@ Extensão para Owlbear Rodeo 2 destinada à criação, organização e visualiza
 - Interface adaptada para computador e celular.
 - Camada de sincronização Supabase preparada, mas ainda sem projeto externo configurado.
 - Migração automática de fichas antigas para o formato de dados atual.
+- Publicação automática no GitHub Pages com verificação dos endereços públicos após cada atualização.
+
+## Instalar a versão publicada
+
+No Owlbear Rodeo, adicione a extensão usando:
+
+`https://demonrider0.github.io/fichas-de-ameaca-t20/manifest.json`
 
 ## Executar localmente
 
@@ -27,7 +34,11 @@ pnpm install
 pnpm dev
 ```
 
-O manifesto de desenvolvimento fica em `public/manifest.json`. No Owlbear Rodeo, a extensão pode ser carregada apontando para o endereço do manifesto servido pelo ambiente local.
+O manifesto de desenvolvimento fica em `public/manifest.local.json`. No Owlbear Rodeo, use:
+
+`http://localhost:5173/fichas-de-ameaca-t20/manifest.local.json`
+
+O manifesto `public/manifest.json` é reservado à versão publicada.
 
 ## Verificações
 

@@ -55,6 +55,20 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: Baixar o projeto
+        uses: actions/checkout@v6
+
+      - name: Preparar o Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
       - name: Publicar no GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verificar a versão publicada
+        env:
+          DEPLOYMENT_URL: ${{ steps.deployment.outputs.page_url }}
+          DEPLOYMENT_CACHE_KEY: ${{ github.sha }}
+        run: node scripts/verify-deployment.mjs

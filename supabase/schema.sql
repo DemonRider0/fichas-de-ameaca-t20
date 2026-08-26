@@ -1,10 +1,11 @@
 create table if not exists public.threat_sheets (
-  id uuid primary key,
+  id uuid not null,
   owner_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   schema_version integer not null,
   payload jsonb not null,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  primary key (owner_id, id)
 );
 
 alter table public.threat_sheets enable row level security;

@@ -33,9 +33,10 @@ export async function getCloudSession(): Promise<Session | null> {
 export async function sendMagicLink(email: string): Promise<void> {
   const cloud = getCloudClient();
   if (!cloud) throw new Error("A sincronização ainda não foi configurada.");
+  const emailRedirectTo = new URL(import.meta.env.BASE_URL, window.location.origin).href;
   const { error } = await cloud.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: window.location.origin },
+    options: { emailRedirectTo },
   });
   if (error) throw error;
 }
