@@ -13,8 +13,9 @@ import {
   isCloudConfigured,
   listCloudThreats,
   saveCloudThreat,
-  sendMagicLink,
+  sendEmailCode,
   signOutCloud,
+  verifyEmailCode,
 } from "./services/cloudRepository";
 import {
   deleteLocalThreat,
@@ -56,6 +57,10 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [session, setSession] = useState<Session | null>(null);
   const [email, setEmail] = useState("");
+  const [emailCode, setEmailCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
+  const [usingLocalOnly, setUsingLocalOnly] = useState(false);
   const [accountMessage, setAccountMessage] = useState("");
   const [owlbearReady, setOwlbearReady] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -263,13 +268,50 @@ export default function App() {
     }
   }
 
-  async function handleSignIn() {
+  async function handleSendCode() {
+    setAccountMessage("");
+    setAuthBusy(true);
+    try {
+      await sendEmailCode(email.trim());
+      setCodeSent(true);
+      setEmailCode("");
+      setAccountMessage("Enviamos um código de 6 dígitos para seu e-mail.");
+    } catch (error) {
+      console.error(error);
+      setAccountMessage("Não foi possível enviar o código agora. Tente novamente em instantes.");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handleVerifyCode() {
+    setAccountMessage("");
+    setAuthBusy(true);
+    try {
+      const nextSession = await verifyEmailCode(email.trim(), emailCode.trim());
+      setUsingLocalOnly(false);
+      setSession(nextSession);
+      setCodeSent(false);
+      setEmailCode("");
+      setAccountMessage("Conta conectada. Sincronizando sua biblioteca…");
+    } catch (error) {
+      console.error(error);
+      setAccountMessage("Código inválido ou expirado. Confira o e-mail ou solicite um novo código.");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handleSignOut() {
     setAccountMessage("");
     try {
-      await sendMagicLink(email.trim());
-      setAccountMessage("Enviamos um link de acesso para seu e-mail.");
+      await signOutCloud();
+      setUsingLocalOnly(false);
+      setCodeSent(false);
+      setEmailCode("");
     } catch (error) {
-      setAccountMessage(error instanceof Error ? error.message : "Não foi possível enviar o link.");
+      console.error(error);
+      setAccountMessage("Não foi possível sair da conta agora.");
     }
   }
 
@@ -310,6 +352,60 @@ export default function App() {
     }
   }
 
+  function renderLoginForm(compact = false) {
+    return (
+      <form
+        className={compact ? "account-login-form" : "login-form"}
+        onSubmit={(event) => {
+          event.preventDefault();
+          void (codeSent ? handleVerifyCode() : handleSendCode());
+        }}
+      >
+        {!codeSent ? (
+          <>
+            <label htmlFor={compact ? "account-email" : "login-email"}>E-mail</label>
+            <input
+              id={compact ? "account-email" : "login-email"}
+              type="email"
+              autoComplete="email"
+              placeholder="seu@email.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+            <button type="submit" className={compact ? undefined : "primary-button"} disabled={authBusy || !email.trim()}>
+              {authBusy ? "Enviando…" : "Enviar código"}
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="code-destination">Código enviado para <strong>{email.trim()}</strong>.</p>
+            <label htmlFor={compact ? "account-code" : "login-code"}>Código de 6 dígitos</label>
+            <input
+              id={compact ? "account-code" : "login-code"}
+              className="otp-input"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              placeholder="000000"
+              value={emailCode}
+              onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+              required
+              autoFocus
+            />
+            <button type="submit" className={compact ? undefined : "primary-button"} disabled={authBusy || emailCode.length !== 6}>
+              {authBusy ? "Entrando…" : "Entrar"}
+            </button>
+            <button type="button" className="text-button" disabled={authBusy} onClick={() => void handleSendCode()}>Reenviar código</button>
+            <button type="button" className="text-button" disabled={authBusy} onClick={() => { setCodeSent(false); setEmailCode(""); setAccountMessage(""); }}>Usar outro e-mail</button>
+          </>
+        )}
+      </form>
+    );
+  }
+
   const statusText = saveState === "saving"
     ? "Salvando…"
     : saveState === "error"
@@ -321,6 +417,29 @@ export default function App() {
           : "Salvo neste dispositivo";
 
   if (loading) return <main className="loading-screen"><span className="spinner" /> Preparando sua biblioteca…</main>;
+
+  if (isCloudConfigured() && !session && !usingLocalOnly) {
+    return (
+      <div className="app-shell view-login">
+        <header className="app-header">
+          <div><p className="eyebrow">Tormenta20</p><h1>Fichas de Ameaça</h1></div>
+          <div className="header-status"><span className="status-dot" />{owlbearReady && <span className="owlbear-badge">Owlbear conectado</span>}</div>
+        </header>
+        <main className="login-screen app-screen">
+          <section className="login-card">
+            <p className="eyebrow">Sua biblioteca</p>
+            <h2>Entrar na extensão</h2>
+            <p>Use seu e-mail para acessar as mesmas fichas em qualquer dispositivo. Não é necessário criar uma senha.</p>
+            {renderLoginForm()}
+            {accountMessage && <p className="login-message" role="status">{accountMessage}</p>}
+            <div className="login-separator"><span>ou</span></div>
+            <button type="button" className="secondary-button local-only-button" onClick={() => { setUsingLocalOnly(true); setAccountMessage(""); }}>Continuar somente neste dispositivo</button>
+            <p className="privacy-note">Seus dados serão tratados conforme a <a href={`${import.meta.env.BASE_URL}privacidade.html`} target="_blank" rel="noreferrer">política de privacidade</a>.</p>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className={`app-shell view-${view}`}>
@@ -383,9 +502,9 @@ export default function App() {
                 {!isCloudConfigured() ? (
                   <p>A conta será ativada quando o banco seguro for configurado. Sua biblioteca local já funciona normalmente.</p>
                 ) : session ? (
-                  <><p>Conectado como <strong>{session.user.email}</strong>.</p><button type="button" onClick={() => void synchronizeNow()}>Sincronizar agora</button><button type="button" className="text-button" onClick={() => void signOutCloud()}>Sair</button><button type="button" className="danger-account-button" onClick={() => void handleDeleteCloudAccount()}>Excluir conta e dados na nuvem</button></>
+                  <><p>Conectado como <strong>{session.user.email}</strong>.</p><button type="button" onClick={() => void synchronizeNow()}>Sincronizar agora</button><button type="button" className="text-button" onClick={() => void handleSignOut()}>Sair</button><button type="button" className="danger-account-button" onClick={() => void handleDeleteCloudAccount()}>Excluir conta e dados na nuvem</button></>
                 ) : (
-                  <><p>Receba um link seguro de acesso, sem senha.</p><input type="email" placeholder="seu@email.com" value={email} onChange={(event) => setEmail(event.target.value)} /><button type="button" onClick={() => void handleSignIn()} disabled={!email.trim()}>Enviar link</button></>
+                  <><p>Entre para sincronizar esta biblioteca com seus outros dispositivos.</p>{renderLoginForm(true)}</>
                 )}
                 {accountMessage && <p className="account-message">{accountMessage}</p>}
                 <p className="privacy-note">Ao usar uma conta, seus dados serão tratados conforme a <a href={`${import.meta.env.BASE_URL}privacidade.html`} target="_blank" rel="noreferrer">política de privacidade</a>.</p>

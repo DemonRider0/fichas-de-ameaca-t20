@@ -30,15 +30,27 @@ export async function getCloudSession(): Promise<Session | null> {
   return data.session;
 }
 
-export async function sendMagicLink(email: string): Promise<void> {
+export async function sendEmailCode(email: string): Promise<void> {
   const cloud = getCloudClient();
   if (!cloud) throw new Error("A sincronização ainda não foi configurada.");
-  const emailRedirectTo = new URL(import.meta.env.BASE_URL, window.location.origin).href;
   const { error } = await cloud.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo },
+    options: { shouldCreateUser: true },
   });
   if (error) throw error;
+}
+
+export async function verifyEmailCode(email: string, token: string): Promise<Session> {
+  const cloud = getCloudClient();
+  if (!cloud) throw new Error("A sincronização ainda não foi configurada.");
+  const { data, error } = await cloud.auth.verifyOtp({
+    email,
+    token,
+    type: "email",
+  });
+  if (error) throw error;
+  if (!data.session) throw new Error("O código não criou uma sessão válida.");
+  return data.session;
 }
 
 export async function signOutCloud(): Promise<void> {

@@ -49,13 +49,15 @@ pnpm build
 
 ## Sincronização segura
 
-A interface usa login sem senha por link enviado ao e-mail. Para ativá-la:
+A interface usa login sem senha por código de seis dígitos enviado ao e-mail. O código é confirmado dentro da própria janela da extensão, mantendo a sessão no contexto correto do Owlbear. Para ativá-la:
 
 1. Criar um projeto Supabase em uma conta controlada pelo proprietário da extensão.
 2. Executar `supabase/schema.sql` no editor SQL do projeto.
 3. Copiar `.env.example` para `.env.local`.
 4. Preencher a URL do projeto e a chave pública/publishable.
-5. Configurar os endereços permitidos para retorno dos links de acesso.
+5. Configurar um provedor SMTP e o modelo **Magic link or OTP** com a variável `{{ .Token }}`.
+
+Na publicação atual, o Supabase envia os códigos de acesso pelo SMTP transacional do Brevo. A chave SMTP fica armazenada apenas nas configurações protegidas do Supabase e nunca é incluída no código da extensão.
 
 O navegador nunca deve receber uma chave secreta ou `service_role`. As políticas de Row Level Security fazem cada conta acessar somente as próprias fichas.
 

@@ -1,14 +1,14 @@
 {
   "name": "Fichas de Ameaça T20 (Local)",
-  "version": "0.3.0-local",
+  "version": "0.3.1-local",
   "manifest_version": 1,
   "author": "DemonRider",
-  "icon": "http://localhost:5173/fichas-de-ameaca-t20/icon.svg?v=0.3.0-local",
+  "icon": "http://localhost:5173/fichas-de-ameaca-t20/icon.svg?v=0.3.1-local",
   "description": "Versão local de testes das Fichas de Ameaça de Tormenta20.",
   "action": {
     "title": "Fichas de Ameaça T20 (Local)",
-    "icon": "http://localhost:5173/fichas-de-ameaca-t20/icon.svg?v=0.3.0-local",
-    "popover": "http://localhost:5173/fichas-de-ameaca-t20/index.html?v=0.3.0-local",
+    "icon": "http://localhost:5173/fichas-de-ameaca-t20/icon.svg?v=0.3.1-local",
+    "popover": "http://localhost:5173/fichas-de-ameaca-t20/index.html?v=0.3.1-local",
     "height": 680,
     "width": 420
   }
