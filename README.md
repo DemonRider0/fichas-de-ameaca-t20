@@ -61,7 +61,7 @@ O navegador nunca deve receber uma chave secreta ou `service_role`. As política
 
 ## Dados pessoais
 
-Quando a sincronização for ativada, o serviço armazenará o endereço de e-mail usado no acesso e o conteúdo das fichas. Antes de convidar outras pessoas ou publicar a extensão, deve existir uma política de privacidade simples informando finalidade, provedor, retenção, exclusão e canal de contato. A conta do serviço externo e a aceitação de seus termos precisam ser feitas pelo proprietário da extensão.
+Quando a sincronização é usada, o serviço armazena o endereço de e-mail usado no acesso e o conteúdo das fichas. A política publicada em `public/privacidade.html` informa finalidade, provedor, retenção, exclusão e canal de contato. A própria extensão permite exportar a biblioteca e excluir voluntariamente a conta e todos os dados na nuvem, preservando as cópias locais.
 
 ## Arquivos editoriais
 

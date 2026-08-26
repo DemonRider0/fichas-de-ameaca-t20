@@ -38,6 +38,9 @@ jobs:
         run: pnpm test
 
       - name: Compilar a extensão
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: pnpm build
 
       - name: Preparar o GitHub Pages

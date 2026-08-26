@@ -48,6 +48,16 @@ export async function signOutCloud(): Promise<void> {
   if (error) throw error;
 }
 
+export async function deleteCloudAccount(): Promise<void> {
+  const cloud = getCloudClient();
+  if (!cloud) throw new Error("A sincronização ainda não foi configurada.");
+  const { error } = await cloud.rpc("delete_current_user");
+  if (error) throw error;
+  // A conta deixa de existir no servidor; esta chamada remove também a sessão
+  // persistida no navegador. O eventual erro remoto já não é relevante aqui.
+  await cloud.auth.signOut({ scope: "local" });
+}
+
 export async function listCloudThreats(): Promise<ThreatSheet[]> {
   const cloud = getCloudClient();
   if (!cloud) return [];

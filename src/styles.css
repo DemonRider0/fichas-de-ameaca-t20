@@ -163,6 +163,9 @@ input[aria-invalid="true"] { border-color: var(--red); }
 .account-card p { margin: 5px 0 9px; color: var(--muted); font-size: 12px; line-height: 1.35; }
 .account-card input { margin: 7px 0; }
 .account-card button { width: 100%; min-height: 34px; margin-top: 5px; border: 1px solid #d5ccc6; border-radius: 7px; background: #fff; }
+.account-card .danger-account-button { color: var(--red-dark); border-color: #e2b8b5; }
+.account-card .privacy-note { margin-top: 12px; font-size: 11px; }
+.account-card .privacy-note a { color: var(--red-dark); }
 .account-message { color: var(--red-dark) !important; }
 .repeat-card-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 

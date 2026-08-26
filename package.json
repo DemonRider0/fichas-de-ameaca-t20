@@ -1,6 +1,6 @@
 {
   "name": "ficha-de-ameaca-t20",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.19.0",

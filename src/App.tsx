@@ -6,6 +6,7 @@ import { ThreatPreview } from "./components/ThreatPreview";
 import { cloneThreat, createEmptyThreat, createExampleThreat, type ThreatSheet } from "./domain/threat";
 import { validateThreat } from "./domain/validation";
 import {
+  deleteCloudAccount,
   deleteCloudThreat,
   getCloudClient,
   getCloudSession,
@@ -59,6 +60,7 @@ export default function App() {
   const [owlbearReady, setOwlbearReady] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
   const latestThreatsRef = useRef<ThreatSheet[]>([]);
+  const synchronizedUserRef = useRef<string | null>(null);
   latestThreatsRef.current = threats;
 
   const selectedThreat = threats.find((threat) => threat.id === selectedId) ?? null;
@@ -85,6 +87,7 @@ export default function App() {
           combined = mergeThreats(local, await listCloudThreats());
           await Promise.all(combined.map(saveLocalThreat));
           await Promise.all(combined.map(saveCloudThreat));
+          synchronizedUserRef.current = cloudSession.user.id;
         }
         if (!active) return;
         setSession(cloudSession);
@@ -111,6 +114,17 @@ export default function App() {
       subscription?.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    const userId = session?.user.id ?? null;
+    if (!userId) {
+      synchronizedUserRef.current = null;
+      return;
+    }
+    if (loading || synchronizedUserRef.current === userId) return;
+    synchronizedUserRef.current = userId;
+    void synchronizeNow(true);
+  }, [loading, session?.user.id]);
 
   useEffect(() => {
     if (window.self === window.top) return;
@@ -259,19 +273,40 @@ export default function App() {
     }
   }
 
-  async function synchronizeNow() {
+  async function synchronizeNow(afterSignIn = false) {
     if (!session) return;
     setSaveState("saving");
     try {
       const cloud = await listCloudThreats();
-      const combined = mergeThreats(threats, cloud);
+      const combined = mergeThreats(latestThreatsRef.current, cloud);
       await Promise.all(combined.map(saveLocalThreat));
       await Promise.all(combined.map(saveCloudThreat));
       setThreats(combined);
       setSaveState("saved");
+      setAccountMessage(afterSignIn ? "Conta conectada e biblioteca sincronizada." : "Biblioteca sincronizada.");
     } catch (error) {
       console.error(error);
       setSaveState("error");
+      setAccountMessage("Não foi possível sincronizar agora. Suas fichas locais continuam disponíveis.");
+      if (afterSignIn) synchronizedUserRef.current = null;
+    }
+  }
+
+  async function handleDeleteCloudAccount() {
+    if (!session) return;
+    const confirmed = window.confirm(
+      "Excluir permanentemente sua conta e todas as fichas armazenadas na nuvem? As cópias salvas neste dispositivo serão preservadas.",
+    );
+    if (!confirmed) return;
+    setAccountMessage("Excluindo conta e dados na nuvem…");
+    try {
+      await deleteCloudAccount();
+      synchronizedUserRef.current = null;
+      setSession(null);
+      setAccountMessage("Conta e dados na nuvem excluídos. Sua biblioteca deste dispositivo foi preservada.");
+    } catch (error) {
+      console.error(error);
+      setAccountMessage("Não foi possível excluir a conta. Nenhuma ficha local foi removida.");
     }
   }
 
@@ -348,11 +383,12 @@ export default function App() {
                 {!isCloudConfigured() ? (
                   <p>A conta será ativada quando o banco seguro for configurado. Sua biblioteca local já funciona normalmente.</p>
                 ) : session ? (
-                  <><p>Conectado como <strong>{session.user.email}</strong>.</p><button type="button" onClick={() => void synchronizeNow()}>Sincronizar agora</button><button type="button" className="text-button" onClick={() => void signOutCloud()}>Sair</button></>
+                  <><p>Conectado como <strong>{session.user.email}</strong>.</p><button type="button" onClick={() => void synchronizeNow()}>Sincronizar agora</button><button type="button" className="text-button" onClick={() => void signOutCloud()}>Sair</button><button type="button" className="danger-account-button" onClick={() => void handleDeleteCloudAccount()}>Excluir conta e dados na nuvem</button></>
                 ) : (
                   <><p>Receba um link seguro de acesso, sem senha.</p><input type="email" placeholder="seu@email.com" value={email} onChange={(event) => setEmail(event.target.value)} /><button type="button" onClick={() => void handleSignIn()} disabled={!email.trim()}>Enviar link</button></>
                 )}
                 {accountMessage && <p className="account-message">{accountMessage}</p>}
+                <p className="privacy-note">Ao usar uma conta, seus dados serão tratados conforme a <a href={`${import.meta.env.BASE_URL}privacidade.html`} target="_blank" rel="noreferrer">política de privacidade</a>.</p>
               </aside>
             </div>
           </div>

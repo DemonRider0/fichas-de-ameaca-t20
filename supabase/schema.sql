@@ -40,3 +40,17 @@ using ((select auth.uid()) = owner_id);
 
 create index if not exists threat_sheets_owner_updated_idx
 on public.threat_sheets (owner_id, updated_at desc);
+
+-- Exclusão voluntária da própria conta. A remoção em auth.users apaga as
+-- fichas relacionadas por cascade, sem permitir atingir outro usuário.
+create or replace function public.delete_current_user()
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  delete from auth.users where id = (select auth.uid());
+$$;
+
+revoke all on function public.delete_current_user() from public, anon;
+grant execute on function public.delete_current_user() to authenticated;

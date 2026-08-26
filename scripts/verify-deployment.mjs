@@ -56,4 +56,6 @@ for (const [label, resource] of publicResources) {
   await fetchWithRetry(withCacheKey(checkedResourceUrl));
 }
 
+await fetchWithRetry(withCacheKey(new URL("privacidade.html", baseUrl)));
+
 console.log(`Publicação ${manifest.version} verificada em ${baseUrl.href}`);
