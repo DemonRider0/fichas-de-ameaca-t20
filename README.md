@@ -49,7 +49,7 @@ pnpm build
 
 ## Sincronização segura
 
-A interface usa login sem senha por código de seis dígitos enviado ao e-mail. O código é confirmado dentro da própria janela da extensão, mantendo a sessão no contexto correto do Owlbear. Para ativá-la:
+A interface usa login sem senha por código numérico enviado ao e-mail. O código é confirmado dentro da própria janela da extensão, mantendo a sessão no contexto correto do Owlbear. Para ativá-la:
 
 1. Criar um projeto Supabase em uma conta controlada pelo proprietário da extensão.
 2. Executar `supabase/schema.sql` no editor SQL do projeto.

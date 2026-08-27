@@ -3,6 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import OBR from "@owlbear-rodeo/sdk";
 import { ThreatEditor } from "./components/ThreatEditor";
 import { ThreatPreview } from "./components/ThreatPreview";
+import { EMAIL_CODE_MAX_LENGTH, isValidEmailCode, normalizeEmailCode } from "./domain/authCode";
 import { cloneThreat, createEmptyThreat, createExampleThreat, type ThreatSheet } from "./domain/threat";
 import { validateThreat } from "./domain/validation";
 import {
@@ -275,7 +276,7 @@ export default function App() {
       await sendEmailCode(email.trim());
       setCodeSent(true);
       setEmailCode("");
-      setAccountMessage("Enviamos um código de 6 dígitos para seu e-mail.");
+      setAccountMessage("Enviamos um código de acesso para seu e-mail.");
     } catch (error) {
       console.error(error);
       setAccountMessage("Não foi possível enviar o código agora. Tente novamente em instantes.");
@@ -380,22 +381,22 @@ export default function App() {
         ) : (
           <>
             <p className="code-destination">Código enviado para <strong>{email.trim()}</strong>.</p>
-            <label htmlFor={compact ? "account-code" : "login-code"}>Código de 6 dígitos</label>
+            <label htmlFor={compact ? "account-code" : "login-code"}>Código recebido por e-mail</label>
             <input
               id={compact ? "account-code" : "login-code"}
               className="otp-input"
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
-              pattern="[0-9]{6}"
-              maxLength={6}
-              placeholder="000000"
+              pattern="[0-9]{6,8}"
+              maxLength={EMAIL_CODE_MAX_LENGTH}
+              placeholder="00000000"
               value={emailCode}
-              onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+              onChange={(event) => setEmailCode(normalizeEmailCode(event.target.value))}
               required
               autoFocus
             />
-            <button type="submit" className={compact ? undefined : "primary-button"} disabled={authBusy || emailCode.length !== 6}>
+            <button type="submit" className={compact ? undefined : "primary-button"} disabled={authBusy || !isValidEmailCode(emailCode)}>
               {authBusy ? "Entrando…" : "Entrar"}
             </button>
             <button type="button" className="text-button" disabled={authBusy} onClick={() => void handleSendCode()}>Reenviar código</button>
