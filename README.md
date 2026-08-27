@@ -42,6 +42,8 @@ O manifesto `public/manifest.json` é reservado à versão publicada.
 
 ## Verificações
 
+O roteiro manual completo para a estabilização anterior à versão 1.0.0 está em [`PLANO-DE-TESTES-1.0.0.md`](PLANO-DE-TESTES-1.0.0.md).
+
 ```powershell
 pnpm test
 pnpm build
