@@ -17,7 +17,7 @@ Extensão para Owlbear Rodeo 2 destinada à criação, organização e visualiza
 - Formatação controlada com `*itálico*`, `**negrito**` e `__sublinhado__`.
 - Biblioteca local com salvamento automático, importação e exportação JSON.
 - Interface adaptada para computador e celular.
-- Camada de sincronização Supabase preparada, mas ainda sem projeto externo configurado.
+- Sincronização Supabase ativa, com login por código de e-mail e menu de conta separado da biblioteca.
 - Migração automática de fichas antigas para o formato de dados atual.
 - Publicação automática no GitHub Pages com verificação dos endereços públicos após cada atualização.
 

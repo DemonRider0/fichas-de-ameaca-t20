@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import OBR from "@owlbear-rodeo/sdk";
+import { AccountMenu } from "./components/AccountMenu";
 import { ThreatEditor } from "./components/ThreatEditor";
 import { ThreatPreview } from "./components/ThreatPreview";
 import { EMAIL_CODE_MAX_LENGTH, isValidEmailCode, normalizeEmailCode } from "./domain/authCode";
@@ -446,10 +447,22 @@ export default function App() {
     <div className={`app-shell view-${view}`}>
       <header className="app-header">
         <div><p className="eyebrow">Tormenta20</p><h1>Fichas de Ameaça</h1></div>
-        <div className="header-status">
-          <span className={`status-dot ${saveState}`} />
-          <span>{statusText}</span>
-          {owlbearReady && <span className="owlbear-badge">Owlbear conectado</span>}
+        <div className="header-actions">
+          <div className="header-status">
+            <span className={`status-dot ${saveState}`} />
+            <span>{statusText}</span>
+            {owlbearReady && <span className="owlbear-badge">Owlbear conectado</span>}
+          </div>
+          <AccountMenu
+            configured={isCloudConfigured()}
+            email={session?.user.email}
+            loginForm={renderLoginForm(true)}
+            message={accountMessage}
+            statusText={statusText}
+            onSynchronize={synchronizeNow}
+            onSignOut={handleSignOut}
+            onDeleteAccount={handleDeleteCloudAccount}
+          />
         </div>
       </header>
 
@@ -468,49 +481,34 @@ export default function App() {
               <input ref={importInputRef} hidden type="file" accept="application/json,.json" onChange={(event) => void handleImport(event.target.files?.[0])} />
             </div>
 
-            <div className="library-layout">
-              <section className="threat-card-grid" aria-label="Fichas salvas">
-                {filteredThreats.map((threat) => {
-                  const threatIssues = validateThreat(threat);
-                  return (
-                    <article className="threat-card" key={threat.id}>
-                      <button type="button" className="threat-card-open" onClick={() => openPreview(threat)}>
-                        <span className="threat-card-nd">ND {threat.challengeLevel || "—"}</span>
-                        <strong>{threat.name || "Ficha sem nome"}</strong>
-                        <span>{threat.type || "Tipo não informado"}{threat.subtype.trim() ? ` (${threat.subtype.trim()})` : ""}, {threat.size || "tamanho não informado"}</span>
-                        <small>{threatIssues.length === 0 ? "Pronta para visualizar" : `${threatIssues.length} ${threatIssues.length === 1 ? "ajuste pendente" : "ajustes pendentes"}`}</small>
-                      </button>
-                      <div className="threat-card-actions">
-                        <button type="button" onClick={() => openEditor(threat)} aria-label={`Editar ${threat.name}`}><span aria-hidden="true">✎</span> Editar</button>
-                        <button type="button" onClick={() => duplicateThreat(threat)}>Duplicar</button>
-                        <button type="button" onClick={() => downloadJson(`${threat.name || "ameaca"}.json`, serializeThreats([threat]))}>Exportar</button>
-                        <button type="button" onClick={() => void removeThreat(threat)}>Excluir</button>
-                      </div>
-                    </article>
-                  );
-                })}
-                {filteredThreats.length === 0 && (
-                  <div className="empty-state library-empty">
-                    <h3>{threats.length === 0 ? "Sua biblioteca está vazia" : "Nenhuma ficha encontrada"}</h3>
-                    <p>{threats.length === 0 ? "Crie sua primeira ameaça para começar." : "Tente buscar por outro nome."}</p>
-                    {threats.length === 0 && <button type="button" className="primary-button" onClick={addThreat}>Criar a primeira ficha</button>}
-                  </div>
-                )}
-              </section>
-
-              <aside className="account-card">
-                <h3>Conta e sincronização</h3>
-                {!isCloudConfigured() ? (
-                  <p>A conta será ativada quando o banco seguro for configurado. Sua biblioteca local já funciona normalmente.</p>
-                ) : session ? (
-                  <><p>Conectado como <strong>{session.user.email}</strong>.</p><button type="button" onClick={() => void synchronizeNow()}>Sincronizar agora</button><button type="button" className="text-button" onClick={() => void handleSignOut()}>Sair</button><button type="button" className="danger-account-button" onClick={() => void handleDeleteCloudAccount()}>Excluir conta e dados na nuvem</button></>
-                ) : (
-                  <><p>Entre para sincronizar esta biblioteca com seus outros dispositivos.</p>{renderLoginForm(true)}</>
-                )}
-                {accountMessage && <p className="account-message">{accountMessage}</p>}
-                <p className="privacy-note">Ao usar uma conta, seus dados serão tratados conforme a <a href={`${import.meta.env.BASE_URL}privacidade.html`} target="_blank" rel="noreferrer">política de privacidade</a>.</p>
-              </aside>
-            </div>
+            <section className="threat-card-grid" aria-label="Fichas salvas">
+              {filteredThreats.map((threat) => {
+                const threatIssues = validateThreat(threat);
+                return (
+                  <article className="threat-card" key={threat.id}>
+                    <button type="button" className="threat-card-open" onClick={() => openPreview(threat)}>
+                      <span className="threat-card-nd">ND {threat.challengeLevel || "—"}</span>
+                      <strong>{threat.name || "Ficha sem nome"}</strong>
+                      <span>{threat.type || "Tipo não informado"}{threat.subtype.trim() ? ` (${threat.subtype.trim()})` : ""}, {threat.size || "tamanho não informado"}</span>
+                      <small>{threatIssues.length === 0 ? "Pronta para visualizar" : `${threatIssues.length} ${threatIssues.length === 1 ? "ajuste pendente" : "ajustes pendentes"}`}</small>
+                    </button>
+                    <div className="threat-card-actions">
+                      <button type="button" onClick={() => openEditor(threat)} aria-label={`Editar ${threat.name}`}><span aria-hidden="true">✎</span> Editar</button>
+                      <button type="button" onClick={() => duplicateThreat(threat)}>Duplicar</button>
+                      <button type="button" onClick={() => downloadJson(`${threat.name || "ameaca"}.json`, serializeThreats([threat]))}>Exportar</button>
+                      <button type="button" onClick={() => void removeThreat(threat)}>Excluir</button>
+                    </div>
+                  </article>
+                );
+              })}
+              {filteredThreats.length === 0 && (
+                <div className="empty-state library-empty">
+                  <h3>{threats.length === 0 ? "Sua biblioteca está vazia" : "Nenhuma ficha encontrada"}</h3>
+                  <p>{threats.length === 0 ? "Crie sua primeira ameaça para começar." : "Tente buscar por outro nome."}</p>
+                  {threats.length === 0 && <button type="button" className="primary-button" onClick={addThreat}>Criar a primeira ficha</button>}
+                </div>
+              )}
+            </section>
           </div>
         </main>
       )}
