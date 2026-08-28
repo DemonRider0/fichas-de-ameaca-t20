@@ -75,7 +75,7 @@ O navegador não oferece o kerning óptico do InDesign. O renderizador usa kerni
 
 ## Linhas editoriais
 
-Os valores de 2 mm abaixo do título e 1 mm nas demais divisões foram preservados como afastamentos. A espessura visual do traço é 0,25 mm, porque aplicar 2 mm/1 mm como espessura produziu linhas incompatíveis com os prints fornecidos. Este valor deve passar por aprovação visual do proprietário.
+Os valores de 2 mm abaixo do título e 1 mm nas demais divisões foram preservados como afastamentos. A espessura visual do traço é 0,25 mm, porque aplicar 2 mm/1 mm como espessura produziu linhas incompatíveis com as capturas de tela fornecidas. Este valor deve passar por aprovação visual do proprietário.
 
 ## Formatação de texto
 

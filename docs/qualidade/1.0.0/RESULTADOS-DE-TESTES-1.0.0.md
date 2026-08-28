@@ -31,7 +31,7 @@ Este arquivo acompanha a execução do roteiro em `PLANO-DE-TESTES-1.0.0.md`.
 | T17 | PASSOU | — |
 | T18 | PASSOU | — |
 
-## Execução pelo Codex
+## Verificações automatizadas
 
 Ambiente: versão pública 0.4.0, biblioteca local isolada, janelas de 420 × 680 e 360 × 640.
 

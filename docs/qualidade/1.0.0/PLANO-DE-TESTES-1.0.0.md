@@ -18,7 +18,7 @@ Este roteiro cobre a estabilização da extensão antes da versão 1.0.0. Execut
 2. **Dispositivo B:** outro navegador, perfil separado ou outro dispositivo.
 3. **Conta QA-A:** usada nos testes de sincronização.
 4. **Conta QA-B:** usada apenas para testar isolamento.
-5. **Mobile:** celular real, se disponível. A simulação de tela estreita não substitui completamente esse teste.
+5. **Celular:** aparelho real, se disponível. A simulação de tela estreita não substitui completamente esse teste.
 
 ## Dados de referência
 
@@ -502,7 +502,7 @@ Teste separadamente:
 
 **Resultado esperado:** o símbolo Spirals fica depois do último caractere do efeito, sem cobrir texto e sem distância exagerada.
 
-## T54 — Formatação inline — P0
+## T54 — Formatação em linha — P0
 
 1. Em um efeito, escreva `*itálico*`, `_itálico_`, `**negrito**`, `__sublinhado__` e `***negrito itálico***`.
 2. Repita parte da formatação na descrição, equipamentos e tesouro.

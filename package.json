@@ -1,6 +1,16 @@
 {
   "name": "ficha-de-ameaca-t20",
-  "version": "0.5.1",
+  "version": "1.0.0",
+  "description": "Crie, organize e sincronize fichas de ameaça de Tormenta20 no Owlbear Rodeo 2.",
+  "author": "DemonRider",
+  "homepage": "https://demonrider0.github.io/fichas-de-ameaca-t20/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DemonRider0/fichas-de-ameaca-t20.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DemonRider0/fichas-de-ameaca-t20/issues"
+  },
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.19.0",
