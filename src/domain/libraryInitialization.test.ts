@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { shouldCreateExampleThreat } from "./libraryInitialization";
+import { createEmptyThreat, createExampleThreat } from "./threat";
+import { excludeAutomaticExample, shouldCreateExampleThreat } from "./libraryInitialization";
 
 describe("shouldCreateExampleThreat", () => {
   it("cria o exemplo somente no primeiro uso de uma biblioteca vazia", () => {
@@ -12,5 +13,10 @@ describe("shouldCreateExampleThreat", () => {
 
   it("não adiciona o exemplo a uma biblioteca que já possui fichas", () => {
     expect(shouldCreateExampleThreat(false, 1)).toBe(false);
+  });
+
+  it("não transfere o exemplo automático para uma conta nova", () => {
+    const realThreat = { ...createEmptyThreat(), name: "Ficha do usuário" };
+    expect(excludeAutomaticExample([createExampleThreat(), realThreat])).toEqual([realThreat]);
   });
 });

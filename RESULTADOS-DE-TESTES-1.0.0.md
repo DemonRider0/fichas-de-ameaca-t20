@@ -2,7 +2,9 @@
 
 Versão inicialmente testada: **0.4.0**
 
-Próxima candidata para reteste: **0.5.0**
+Candidata retestada: **0.5.0**
+
+Correção final pré-1.0.0: **0.5.1**
 
 Este arquivo acompanha a execução do roteiro em `PLANO-DE-TESTES-1.0.0.md`.
 
@@ -14,7 +16,7 @@ Este arquivo acompanha a execução do roteiro em `PLANO-DE-TESTES-1.0.0.md`.
 | T02 | PASSOU | — |
 | T03 | PASSOU | — |
 | T04 | PASSOU | — |
-| T05 | CORREÇÃO APLICADA | Os modelos de primeiro cadastro e de acesso recorrente foram alinhados no Supabase e agora enviam somente o código numérico. Aguardando reteste na 0.5.0. |
+| T05 | PASSOU | Os modelos de primeiro cadastro e de acesso recorrente enviaram corretamente somente o código numérico na 0.5.0. |
 | T06 | PASSOU | — |
 | T07 | PASSOU | — |
 | T08 | PASSOU | — |
@@ -39,7 +41,7 @@ Além da navegação manual, os 24 testes automatizados passaram e a compilaçã
 |---|---|---|
 | T19 | PASSOU | Confirmado manualmente pelo usuário. |
 | T20 | PASSOU | Confirmado manualmente pelo usuário. |
-| T21 | CORREÇÃO IMPLEMENTADA | A biblioteca agora registra que já foi inicializada; o exemplo só pode surgir no primeiro uso. Aguardando reteste na 0.5.0. |
+| T21 | PASSOU | A ficha excluída não reapareceu depois de atualizar uma biblioteca vazia na 0.5.0. |
 | T22 | PASSOU | Confirmado manualmente pelo usuário. |
 | T23 | PASSOU | Quatro campos obrigatórios produziram quatro mensagens próprias e o contador retornou a zero após a correção. |
 | T24 | PASSOU | `1/4`, `1/2`, `5`, `S` e `S+` funcionaram; uma entrada com quatro caracteres foi limitada a três. |
@@ -82,10 +84,10 @@ Além da navegação manual, os 24 testes automatizados passaram e a compilaçã
 | T61 | PASSOU | Confirmado manualmente pelo usuário em dois ambientes. |
 | T62 | PASSOU | Confirmado manualmente pelo usuário em dois ambientes. |
 | T63 | PASSOU | Confirmado manualmente pelo usuário. |
-| T64 | CORREÇÃO IMPLEMENTADA | Foram adicionados marcadores de exclusão locais e na nuvem. Aguardando reteste em dois dispositivos na 0.5.0. |
+| T64 | PASSOU | Os marcadores de exclusão impediram que outro dispositivo recriasse a ficha na 0.5.0. |
 | T65 | PASSOU | Confirmado manualmente pelo usuário. |
 | T66 | PASSOU | Isolamento entre duas contas confirmado manualmente. |
-| T67 | CORREÇÃO IMPLEMENTADA | O cache IndexedDB passou a ser separado por conta e da biblioteca sem conta. Aguardando reteste na 0.5.0. |
+| T67 | PASSOU | A troca de conta no mesmo perfil não transferiu fichas entre usuários na 0.5.0. |
 | T68 | PASSOU | Desconexão e recuperação confirmadas manualmente. |
 | T69 | PASSOU | A conta foi excluída e as cópias locais foram preservadas, conforme esperado. |
 | T70 | PASSOU | Confirmado manualmente em outro navegador. |
@@ -93,13 +95,13 @@ Além da navegação manual, os 24 testes automatizados passaram e a compilaçã
 | T72 | PASSOU | 10 habilidades, 5 sub-habilidades, 6 ataques e descrição longa geraram ficha de aproximadamente 1.897 px, sem coluna dupla nem rolagem horizontal. |
 | T73 | PASSOU | Em 420 px e 360 px, textos longos não encobriram o ND nem criaram rolagem horizontal da janela. |
 | T74 | PASSOU | Após recarregar, quatro fontes e cinco imagens carregaram sem erro de console ou 404. |
-| T75 | NÃO TESTADO | Só pode ser concluído durante a próxima atualização publicada. |
+| T75 | PASSOU | As fichas existentes foram preservadas durante a atualização para a 0.5.0. |
 
 ## Resumo
 
-- **70 passaram na versão 0.4.0**.
-- **4 correções foram preparadas para a candidata 0.5.0**: T05, T21, T64 e T67.
-- **1 permanece pendente**: T75, que só pode ser executado após a próxima atualização.
+- **Todos os 75 testes passaram após o reteste da versão 0.5.0**.
+- Foi identificado um ajuste adicional: a ficha-exemplo local não deve ser transferida automaticamente para uma conta recém-criada.
+- A correção desse comportamento foi preparada na versão 0.5.1, última candidata antes da 1.0.0.
 
 ## Correções da candidata 0.5.0
 
@@ -107,3 +109,7 @@ Além da navegação manual, os 24 testes automatizados passaram e a compilaçã
 2. **T67 — troca de conta:** fichas, exclusões pendentes e cache local passam a usar um escopo próprio para cada usuário.
 3. **T05 — primeiro e-mail de uma conta nova:** os dois modelos de autenticação usam o mesmo código numérico digitado dentro da extensão.
 4. **T21 — biblioteca vazia:** a ficha de exemplo é criada apenas na primeira inicialização da biblioteca sem conta.
+
+## Correção final da candidata 0.5.1
+
+- A ficha `Meio-Orc Bandoleiro` criada automaticamente continua disponível como demonstração no uso exclusivamente local, mas é descartada durante a primeira sincronização com uma conta. Fichas reais criadas pelo usuário no modo local continuam podendo ser transferidas normalmente.

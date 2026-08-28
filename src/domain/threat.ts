@@ -224,11 +224,13 @@ export function createEmptyThreat(): ThreatSheet {
   };
 }
 
+export const EXAMPLE_THREAT_ID = "00000000-0000-4000-8000-000000000001";
+
 export function createExampleThreat(): ThreatSheet {
   const threat = createEmptyThreat();
   return {
     ...threat,
-    id: "00000000-0000-4000-8000-000000000001",
+    id: EXAMPLE_THREAT_ID,
     name: "Meio-Orc Bandoleiro",
     description:
       "Um salteador endurecido pelas estradas, acostumado a emboscar viajantes e desaparecer antes da chegada de reforços.",

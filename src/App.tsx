@@ -5,7 +5,7 @@ import { AccountMenu } from "./components/AccountMenu";
 import { ThreatEditor } from "./components/ThreatEditor";
 import { ThreatPreview } from "./components/ThreatPreview";
 import { EMAIL_CODE_MAX_LENGTH, isValidEmailCode, normalizeEmailCode } from "./domain/authCode";
-import { shouldCreateExampleThreat } from "./domain/libraryInitialization";
+import { excludeAutomaticExample, shouldCreateExampleThreat } from "./domain/libraryInitialization";
 import { reconcileLibrary } from "./domain/synchronization";
 import { cloneThreat, createEmptyThreat, createExampleThreat, type ThreatSheet } from "./domain/threat";
 import { validateThreat } from "./domain/validation";
@@ -231,7 +231,9 @@ export default function App() {
       listLocalDeletions(scope),
       listCloudThreats(),
       listCloudDeletions(),
-      adoptLocal ? listLocalThreats(LOCAL_LIBRARY_SCOPE) : Promise.resolve([]),
+      adoptLocal
+        ? listLocalThreats(LOCAL_LIBRARY_SCOPE).then(excludeAutomaticExample)
+        : Promise.resolve([]),
     ]);
     const localCandidates = mergeThreats(accountThreats, localOnlyThreats);
     const reconciled = reconcileLibrary(localCandidates, cloudThreats, accountDeletions, cloudDeletions);
