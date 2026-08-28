@@ -1,14 +1,14 @@
 {
   "name": "Fichas de Ameaça T20",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "manifest_version": 1,
   "author": "DemonRider",
-  "icon": "https://demonrider0.github.io/fichas-de-ameaca-t20/icon.svg?v=0.4.0",
+  "icon": "https://demonrider0.github.io/fichas-de-ameaca-t20/icon.svg?v=0.5.0",
   "description": "Crie, organize e consulte fichas de ameaça de Tormenta20.",
   "action": {
     "title": "Fichas de Ameaça T20",
-    "icon": "https://demonrider0.github.io/fichas-de-ameaca-t20/icon.svg?v=0.4.0",
-    "popover": "https://demonrider0.github.io/fichas-de-ameaca-t20/index.html?v=0.4.0",
+    "icon": "https://demonrider0.github.io/fichas-de-ameaca-t20/icon.svg?v=0.5.0",
+    "popover": "https://demonrider0.github.io/fichas-de-ameaca-t20/index.html?v=0.5.0",
     "height": 680,
     "width": 420
   }

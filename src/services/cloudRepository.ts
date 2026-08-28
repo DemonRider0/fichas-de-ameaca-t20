@@ -1,5 +1,6 @@
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import { normalizeThreat, type ThreatSheet } from "../domain/threat";
+import type { ThreatDeletion } from "../domain/synchronization";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
 const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
@@ -81,6 +82,24 @@ export async function listCloudThreats(): Promise<ThreatSheet[]> {
   return (data ?? []).map((row) => normalizeThreat(row.payload as ThreatSheet));
 }
 
+export async function listCloudDeletions(): Promise<ThreatDeletion[]> {
+  const cloud = getCloudClient();
+  if (!cloud) return [];
+  const { data, error } = await cloud
+    .from("threat_deletions")
+    .select("id, deleted_at")
+    .order("deleted_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((row) => ({ id: row.id as string, deletedAt: row.deleted_at as string }));
+}
+
+export async function deleteCloudDeletion(id: string): Promise<void> {
+  const cloud = getCloudClient();
+  if (!cloud) return;
+  const { error } = await cloud.from("threat_deletions").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export async function saveCloudThreat(threat: ThreatSheet): Promise<void> {
   const cloud = getCloudClient();
   if (!cloud) return;
@@ -91,11 +110,19 @@ export async function saveCloudThreat(threat: ThreatSheet): Promise<void> {
     updated_at: threat.updatedAt,
   });
   if (error) throw error;
+  // A marca só é removida depois que a ficha nova está segura na nuvem. Assim,
+  // uma falha intermediária nunca permite que uma cópia antiga reapareça.
+  await deleteCloudDeletion(threat.id);
 }
 
-export async function deleteCloudThreat(id: string): Promise<void> {
+export async function deleteCloudThreat(id: string, deletedAt = new Date().toISOString()): Promise<void> {
   const cloud = getCloudClient();
   if (!cloud) return;
-  const { error } = await cloud.from("threat_sheets").delete().eq("id", id);
-  if (error) throw error;
+  const { error: deletionError } = await cloud.from("threat_deletions").upsert({
+    id,
+    deleted_at: deletedAt,
+  });
+  if (deletionError) throw deletionError;
+  const { error: threatError } = await cloud.from("threat_sheets").delete().eq("id", id);
+  if (threatError) throw threatError;
 }

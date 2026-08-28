@@ -5,14 +5,18 @@ import { AccountMenu } from "./components/AccountMenu";
 import { ThreatEditor } from "./components/ThreatEditor";
 import { ThreatPreview } from "./components/ThreatPreview";
 import { EMAIL_CODE_MAX_LENGTH, isValidEmailCode, normalizeEmailCode } from "./domain/authCode";
+import { shouldCreateExampleThreat } from "./domain/libraryInitialization";
+import { reconcileLibrary } from "./domain/synchronization";
 import { cloneThreat, createEmptyThreat, createExampleThreat, type ThreatSheet } from "./domain/threat";
 import { validateThreat } from "./domain/validation";
 import {
   deleteCloudAccount,
+  deleteCloudDeletion,
   deleteCloudThreat,
   getCloudClient,
   getCloudSession,
   isCloudConfigured,
+  listCloudDeletions,
   listCloudThreats,
   saveCloudThreat,
   sendEmailCode,
@@ -20,11 +24,19 @@ import {
   verifyEmailCode,
 } from "./services/cloudRepository";
 import {
+  clearLocalScope,
+  deleteLocalDeletion,
   deleteLocalThreat,
+  isLocalScopeInitialized,
+  listLocalDeletions,
   listLocalThreats,
+  LOCAL_LIBRARY_SCOPE,
+  markLocalScopeInitialized,
   parseThreatImport,
+  saveLocalDeletion,
   saveLocalThreat,
   serializeThreats,
+  userLibraryScope,
 } from "./services/localRepository";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -63,12 +75,16 @@ export default function App() {
   const [codeSent, setCodeSent] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [usingLocalOnly, setUsingLocalOnly] = useState(false);
+  const [activeScope, setActiveScope] = useState(LOCAL_LIBRARY_SCOPE);
   const [accountMessage, setAccountMessage] = useState("");
   const [owlbearReady, setOwlbearReady] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
   const latestThreatsRef = useRef<ThreatSheet[]>([]);
+  const activeScopeRef = useRef(LOCAL_LIBRARY_SCOPE);
   const synchronizedUserRef = useRef<string | null>(null);
+  const suppressSessionLibrarySwitchRef = useRef(false);
   latestThreatsRef.current = threats;
+  activeScopeRef.current = activeScope;
 
   const selectedThreat = threats.find((threat) => threat.id === selectedId) ?? null;
   const issues = useMemo(() => selectedThreat ? validateThreat(selectedThreat) : [], [selectedThreat]);
@@ -82,31 +98,37 @@ export default function App() {
     let active = true;
     async function initialize() {
       try {
-        let local = await listLocalThreats();
-        if (local.length === 0) {
-          const example = createExampleThreat();
-          await saveLocalThreat(example);
-          local = [example];
-        }
         const cloudSession = await getCloudSession();
-        let combined = local;
+        let initialThreats: ThreatSheet[];
+        let initialScope = LOCAL_LIBRARY_SCOPE;
         if (cloudSession) {
-          combined = mergeThreats(local, await listCloudThreats());
-          await Promise.all(combined.map(saveLocalThreat));
-          await Promise.all(combined.map(saveCloudThreat));
+          initialScope = userLibraryScope(cloudSession.user.id);
+          try {
+            initialThreats = await synchronizeUserLibrary(cloudSession.user.id, true);
+          } catch (error) {
+            console.error(error);
+            // Sem rede, abre somente o cache pertencente a esta conta. Nunca
+            // mistura a biblioteca anônima nem fabrica uma ficha de exemplo.
+            initialThreats = await listLocalThreats(initialScope);
+            setSaveState("error");
+            setAccountMessage("Sem conexão com a nuvem. Exibindo as fichas salvas desta conta neste dispositivo.");
+          }
           synchronizedUserRef.current = cloudSession.user.id;
+        } else {
+          initialThreats = await loadLocalLibrary();
         }
         if (!active) return;
         setSession(cloudSession);
-        setThreats(combined);
-        setSelectedId(combined[0]?.id ?? null);
+        setActiveScope(initialScope);
+        setThreats(initialThreats);
+        setSelectedId(initialThreats[0]?.id ?? null);
       } catch (error) {
         console.error(error);
-        const fallback = createExampleThreat();
         if (active) {
-          setThreats([fallback]);
-          setSelectedId(fallback.id);
+          setThreats([]);
+          setSelectedId(null);
           setSaveState("error");
+          setAccountMessage("Não foi possível abrir a biblioteca deste dispositivo.");
         }
       } finally {
         if (active) setLoading(false);
@@ -126,12 +148,14 @@ export default function App() {
     const userId = session?.user.id ?? null;
     if (!userId) {
       synchronizedUserRef.current = null;
+      if (suppressSessionLibrarySwitchRef.current) return;
+      if (!loading && activeScope !== LOCAL_LIBRARY_SCOPE) void activateLocalLibrary(false);
       return;
     }
     if (loading || synchronizedUserRef.current === userId) return;
     synchronizedUserRef.current = userId;
-    void synchronizeNow(true);
-  }, [loading, session?.user.id]);
+    void activateUserLibrary(userId, true);
+  }, [activeScope, loading, session?.user.id]);
 
   useEffect(() => {
     if (window.self === window.top) return;
@@ -144,8 +168,10 @@ export default function App() {
     setSaveState("saving");
     const timer = window.setTimeout(async () => {
       try {
-        await saveLocalThreat(threatToSave);
-        if (session) await saveCloudThreat(threatToSave);
+        const scope = activeScopeRef.current;
+        await deleteLocalDeletion(scope, threatToSave.id);
+        await saveLocalThreat(scope, threatToSave);
+        if (session && scope === userLibraryScope(session.user.id)) await saveCloudThreat(threatToSave);
         const latest = latestThreatsRef.current.find((threat) => threat.id === threatToSave.id);
         if (latest?.updatedAt === threatToSave.updatedAt) {
           setDirtyIds((current) => {
@@ -161,7 +187,7 @@ export default function App() {
       }
     }, 500);
     return () => window.clearTimeout(timer);
-  }, [loading, selectedIsDirty, selectedThreat, session]);
+  }, [activeScope, loading, selectedIsDirty, selectedThreat, session]);
 
   useEffect(() => {
     const preventAccidentalClose = (event: BeforeUnloadEvent) => {
@@ -184,11 +210,98 @@ export default function App() {
     setSaveState("saved");
   }
 
+  async function loadLocalLibrary(): Promise<ThreatSheet[]> {
+    let local = await listLocalThreats(LOCAL_LIBRARY_SCOPE);
+    const initialized = await isLocalScopeInitialized(LOCAL_LIBRARY_SCOPE);
+    if (shouldCreateExampleThreat(initialized, local.length)) {
+      const example = createExampleThreat();
+      await saveLocalThreat(LOCAL_LIBRARY_SCOPE, example);
+      local = [example];
+    }
+    if (!initialized) {
+      await markLocalScopeInitialized(LOCAL_LIBRARY_SCOPE);
+    }
+    return local;
+  }
+
+  async function synchronizeUserLibrary(userId: string, adoptLocal: boolean): Promise<ThreatSheet[]> {
+    const scope = userLibraryScope(userId);
+    const [accountThreats, accountDeletions, cloudThreats, cloudDeletions, localOnlyThreats] = await Promise.all([
+      listLocalThreats(scope),
+      listLocalDeletions(scope),
+      listCloudThreats(),
+      listCloudDeletions(),
+      adoptLocal ? listLocalThreats(LOCAL_LIBRARY_SCOPE) : Promise.resolve([]),
+    ]);
+    const localCandidates = mergeThreats(accountThreats, localOnlyThreats);
+    const reconciled = reconcileLibrary(localCandidates, cloudThreats, accountDeletions, cloudDeletions);
+
+    await Promise.all(reconciled.deletions.map(async (deletion) => {
+      await saveLocalDeletion(scope, deletion);
+      await deleteLocalThreat(scope, deletion.id);
+      await deleteCloudThreat(deletion.id, deletion.deletedAt);
+    }));
+    await Promise.all(reconciled.threats.map(async (threat) => {
+      await deleteLocalDeletion(scope, threat.id);
+      await saveLocalThreat(scope, threat);
+      await saveCloudThreat(threat);
+    }));
+    await markLocalScopeInitialized(scope);
+
+    if (adoptLocal) {
+      await clearLocalScope(LOCAL_LIBRARY_SCOPE);
+      await markLocalScopeInitialized(LOCAL_LIBRARY_SCOPE);
+    }
+    return reconciled.threats;
+  }
+
+  async function activateUserLibrary(userId: string, afterSignIn: boolean): Promise<void> {
+    setSaveState("saving");
+    try {
+      const scope = userLibraryScope(userId);
+      const synchronized = await synchronizeUserLibrary(userId, true);
+      setActiveScope(scope);
+      setThreats(synchronized);
+      setSelectedId(synchronized[0]?.id ?? null);
+      setDirtyIds(new Set());
+      setUsingLocalOnly(false);
+      setView("library");
+      setSaveState("saved");
+      setAccountMessage(afterSignIn ? "Conta conectada e biblioteca sincronizada." : "Biblioteca sincronizada.");
+    } catch (error) {
+      console.error(error);
+      synchronizedUserRef.current = null;
+      setSaveState("error");
+      setAccountMessage("Não foi possível sincronizar agora. Suas fichas locais continuam disponíveis.");
+    }
+  }
+
+  async function activateLocalLibrary(showLibrary: boolean): Promise<void> {
+    try {
+      const local = await loadLocalLibrary();
+      setActiveScope(LOCAL_LIBRARY_SCOPE);
+      setThreats(local);
+      setSelectedId(local[0]?.id ?? null);
+      setDirtyIds(new Set());
+      if (showLibrary) {
+        setUsingLocalOnly(true);
+        setView("library");
+        setAccountMessage("");
+      }
+    } catch (error) {
+      console.error(error);
+      setSaveState("error");
+      setAccountMessage("Não foi possível abrir a biblioteca deste dispositivo.");
+    }
+  }
+
   async function saveImmediately(threat: ThreatSheet): Promise<boolean> {
     setSaveState("saving");
     try {
-      await saveLocalThreat(threat);
-      if (session) await saveCloudThreat(threat);
+      const scope = activeScopeRef.current;
+      await deleteLocalDeletion(scope, threat.id);
+      await saveLocalThreat(scope, threat);
+      if (session && scope === userLibraryScope(session.user.id)) await saveCloudThreat(threat);
       markSaved(threat.id, threat.updatedAt);
       return true;
     } catch (error) {
@@ -241,8 +354,19 @@ export default function App() {
 
   async function removeThreat(threat: ThreatSheet) {
     if (!window.confirm(`Excluir “${threat.name}”?`)) return;
-    await deleteLocalThreat(threat.id);
-    if (session) await deleteCloudThreat(threat.id);
+    const scope = activeScopeRef.current;
+    const deletion = { id: threat.id, deletedAt: new Date().toISOString() };
+    await saveLocalDeletion(scope, deletion);
+    await deleteLocalThreat(scope, threat.id);
+    if (session && scope === userLibraryScope(session.user.id)) {
+      try {
+        await deleteCloudThreat(threat.id, deletion.deletedAt);
+      } catch (error) {
+        console.error(error);
+        setSaveState("error");
+        setAccountMessage("A ficha foi removida deste dispositivo e será excluída da nuvem na próxima sincronização.");
+      }
+    }
     const remaining = threats.filter((item) => item.id !== threat.id);
     setThreats(remaining);
     setDirtyIds((current) => {
@@ -257,8 +381,12 @@ export default function App() {
     if (!file) return;
     try {
       const imported = parseThreatImport(await file.text());
-      await Promise.all(imported.map(saveLocalThreat));
-      if (session) await Promise.all(imported.map(saveCloudThreat));
+      const scope = activeScopeRef.current;
+      await Promise.all(imported.map(async (threat) => {
+        await deleteLocalDeletion(scope, threat.id);
+        await saveLocalThreat(scope, threat);
+        if (session && scope === userLibraryScope(session.user.id)) await saveCloudThreat(threat);
+      }));
       const combined = mergeThreats(threats, imported);
       setThreats(combined);
       setSelectedId(imported[0]?.id ?? selectedId);
@@ -317,23 +445,10 @@ export default function App() {
     }
   }
 
-  async function synchronizeNow(afterSignIn = false) {
+  async function synchronizeNow() {
     if (!session) return;
-    setSaveState("saving");
-    try {
-      const cloud = await listCloudThreats();
-      const combined = mergeThreats(latestThreatsRef.current, cloud);
-      await Promise.all(combined.map(saveLocalThreat));
-      await Promise.all(combined.map(saveCloudThreat));
-      setThreats(combined);
-      setSaveState("saved");
-      setAccountMessage(afterSignIn ? "Conta conectada e biblioteca sincronizada." : "Biblioteca sincronizada.");
-    } catch (error) {
-      console.error(error);
-      setSaveState("error");
-      setAccountMessage("Não foi possível sincronizar agora. Suas fichas locais continuam disponíveis.");
-      if (afterSignIn) synchronizedUserRef.current = null;
-    }
+    synchronizedUserRef.current = session.user.id;
+    await activateUserLibrary(session.user.id, false);
   }
 
   async function handleDeleteCloudAccount() {
@@ -343,14 +458,28 @@ export default function App() {
     );
     if (!confirmed) return;
     setAccountMessage("Excluindo conta e dados na nuvem…");
+    suppressSessionLibrarySwitchRef.current = true;
     try {
+      const accountScope = userLibraryScope(session.user.id);
+      const accountCopies = [...latestThreatsRef.current];
       await deleteCloudAccount();
+      const existingLocal = await listLocalThreats(LOCAL_LIBRARY_SCOPE);
+      const preserved = mergeThreats(existingLocal, accountCopies);
+      await Promise.all(preserved.map((threat) => saveLocalThreat(LOCAL_LIBRARY_SCOPE, threat)));
+      await markLocalScopeInitialized(LOCAL_LIBRARY_SCOPE);
+      await clearLocalScope(accountScope);
       synchronizedUserRef.current = null;
+      setActiveScope(LOCAL_LIBRARY_SCOPE);
+      setThreats(preserved);
+      setSelectedId(preserved[0]?.id ?? null);
+      setDirtyIds(new Set());
       setSession(null);
       setAccountMessage("Conta e dados na nuvem excluídos. Sua biblioteca deste dispositivo foi preservada.");
     } catch (error) {
       console.error(error);
       setAccountMessage("Não foi possível excluir a conta. Nenhuma ficha local foi removida.");
+    } finally {
+      suppressSessionLibrarySwitchRef.current = false;
     }
   }
 
@@ -435,7 +564,7 @@ export default function App() {
             {renderLoginForm()}
             {accountMessage && <p className="login-message" role="status">{accountMessage}</p>}
             <div className="login-separator"><span>ou</span></div>
-            <button type="button" className="secondary-button local-only-button" onClick={() => { setUsingLocalOnly(true); setAccountMessage(""); }}>Continuar somente neste dispositivo</button>
+            <button type="button" className="secondary-button local-only-button" onClick={() => void activateLocalLibrary(true)}>Continuar somente neste dispositivo</button>
             <p className="privacy-note">Seus dados serão tratados conforme a <a href={`${import.meta.env.BASE_URL}privacidade.html`} target="_blank" rel="noreferrer">política de privacidade</a>.</p>
           </section>
         </main>

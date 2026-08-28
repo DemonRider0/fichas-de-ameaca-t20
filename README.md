@@ -16,6 +16,7 @@ Extensão para Owlbear Rodeo 2 destinada à criação, organização e visualiza
 - Habilidades, sub-habilidades e marcador de magia.
 - Formatação controlada com `*itálico*`, `**negrito**` e `__sublinhado__`.
 - Biblioteca local com salvamento automático, importação e exportação JSON.
+- Cache local separado por conta e sincronização de exclusões entre dispositivos.
 - Interface adaptada para computador e celular.
 - Sincronização Supabase ativa, com login por código de e-mail e menu de conta separado da biblioteca.
 - Migração automática de fichas antigas para o formato de dados atual.
@@ -57,7 +58,10 @@ A interface usa login sem senha por código numérico enviado ao e-mail. O códi
 2. Executar `supabase/schema.sql` no editor SQL do projeto.
 3. Copiar `.env.example` para `.env.local`.
 4. Preencher a URL do projeto e a chave pública/publishable.
-5. Configurar um provedor SMTP e o modelo **Magic link or OTP** com a variável `{{ .Token }}`.
+5. Configurar um provedor SMTP.
+6. Configurar os modelos **Confirm sign up** e **Magic link or OTP** com a variável `{{ .Token }}`, sem `{{ .ConfirmationURL }}`.
+
+Em um projeto que já possua o banco da extensão, execute também a migração mais recente da pasta `supabase/migrations/`. Ela adiciona os marcadores que impedem uma cópia antiga de recriar, em outro dispositivo, uma ficha já excluída.
 
 Na publicação atual, o Supabase envia os códigos de acesso pelo SMTP transacional do Brevo. A chave SMTP fica armazenada apenas nas configurações protegidas do Supabase e nunca é incluída no código da extensão.
 
